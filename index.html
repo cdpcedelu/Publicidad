@@ -79,6 +79,32 @@
   .modal{background:var(--card); border-radius:16px; width:100%; max-width:620px; margin:auto; padding:18px; box-shadow:0 20px 60px rgba(0,0,0,.4)}
   .modal h3{font-size:16px; color:var(--azul); margin-bottom:14px}
   code{background:var(--azul-cl); color:var(--azul); padding:1px 6px; border-radius:5px; font-size:12px}
+
+  /* ---- RECIBO ---- */
+  #reciboBox{background:#fff; color:#111; border:1px solid var(--line); border-radius:12px; padding:22px 24px; font-family:"DejaVu Sans",system-ui,sans-serif}
+  .rc-head{display:flex; align-items:center; gap:12px; border-bottom:3px solid #3C823C; padding-bottom:12px; margin-bottom:14px}
+  .rc-head .rc-logo{height:52px}
+  .rc-club{flex:1; font-weight:800; color:#1A2E63; font-size:16px; line-height:1.15}
+  .rc-club small{display:block; font-weight:400; color:#5A6473; font-size:11px; margin-top:2px}
+  .rc-nro{text-align:right; color:#284696; font-size:11px; font-weight:700; letter-spacing:1px}
+  .rc-nro b{display:block; font-size:18px; margin-top:2px}
+  .rc-rowi{display:flex; justify-content:space-between; font-size:12px; color:#5A6473; margin-bottom:10px}
+  .rc-rowi b{color:#111}
+  .rc-line{font-size:13.5px; margin:8px 0}
+  .rc-amount{background:#E7F1E7; border:1px solid #3C823C; border-radius:10px; text-align:center; font-size:26px; font-weight:800; color:#2C632C; padding:12px; margin:12px 0}
+  .rc-words{font-size:12.5px; color:#333; font-style:italic; margin-bottom:12px; text-transform:capitalize}
+  .rc-sign{display:flex; gap:30px; margin-top:34px}
+  .rc-sign .s{flex:1; border-top:1px solid #333; padding-top:5px; font-size:10.5px; color:#5A6473; text-align:center}
+  .rc-foot{margin-top:16px; font-size:9.5px; color:#9AA3B0; text-align:center; border-top:1px solid var(--line); padding-top:7px}
+  @media print{
+    body *{visibility:hidden !important}
+    #ovR,#ovR *{visibility:visible !important}
+    #ovR{position:static; background:none; display:block !important; padding:0; overflow:visible}
+    #ovR .modal{box-shadow:none; max-width:100%; padding:0; margin:0}
+    #ovR .row-actions{display:none !important}
+    #reciboBox{border:none; border-radius:0}
+    header,nav{display:none !important}
+  }
 </style>
 </head>
 <body>
@@ -90,7 +116,7 @@
 <nav>
   <button data-v="panel" class="on">Panel</button>
   <button data-v="contratos">Contratos</button>
-  <button data-v="pagos">Pagos</button>
+  <button data-v="pagos">Pagos y recibos</button>
   <button data-v="deuda">Deuda</button>
 </nav>
 
@@ -224,6 +250,28 @@
     <button class="btn g" onclick="closeP()">Cancelar</button>
     <button class="btn g" id="p_del" style="display:none; color:var(--danger); border-color:var(--danger)">Eliminar</button>
     <button class="btn p" id="p_save">Guardar</button>
+  </div>
+</div></div>
+
+<div class="ov" id="ovR"><div class="modal" style="max-width:640px">
+  <div id="reciboBox">
+    <div class="rc-head">
+      <img class="rc-logo" id="rc-logo" alt="CDP">
+      <div class="rc-club">Club de Profesionales<small>Publicidad CDP · Temporada 2026</small></div>
+      <div class="rc-nro">RECIBO<b id="rc-nro"></b></div>
+    </div>
+    <div class="rc-rowi"><span>Fecha: <b id="rc-fecha"></b></span><span>Mes: <b id="rc-mes"></b></span></div>
+    <div class="rc-line">Recibimos de <b id="rc-cliente"></b> la suma de:</div>
+    <div class="rc-amount" id="rc-monto">$ 0</div>
+    <div class="rc-words" id="rc-letras"></div>
+    <div class="rc-line">En concepto de: <b id="rc-concepto"></b></div>
+    <div class="rc-rowi"><span>Medio: <b id="rc-medio"></b></span><span>Comprob.: <b id="rc-comp"></b></span></div>
+    <div class="rc-sign"><div class="s">Recibí conforme</div><div class="s">Por el Club de Profesionales</div></div>
+    <div class="rc-foot">Publicidad CDP · Club de Profesionales · Concepción del Uruguay, Entre Ríos</div>
+  </div>
+  <div class="row-actions">
+    <button class="btn g" onclick="closeR()">Cerrar</button>
+    <button class="btn p" onclick="window.print()">🖨 Imprimir / Guardar PDF</button>
   </div>
 </div></div>
 
@@ -419,7 +467,7 @@ function renderPagos(){
     <tr><td>${esc(fmtDate(p.fecha))}</td><td><b>${esc(p.cliente)}</b></td><td>${esc(p.mes)}</td>
     <td class="mut" style="font-size:12px">${esc(p.concepto||'')}</td><td class="r price">${money(p.monto)}</td>
     <td class="mut" style="font-size:12px">${esc(p.medio||'')}</td><td class="mut" style="font-size:12px">${esc(p.comp||'')}</td>
-    <td class="c"><button class="ico" onclick="openP('${p.id}')">✏️</button></td></tr>`).join('');
+    <td class="c"><button class="ico" title="Recibo" onclick="recibo('${p.id}')">📄</button><button class="ico" title="Editar" onclick="openP('${p.id}')">✏️</button></td></tr>`).join('');
 }
 document.getElementById('fPago').oninput=renderPagos;
 document.getElementById('fPagoMes').onchange=renderPagos;
@@ -470,7 +518,45 @@ document.getElementById('expPago').onclick=()=>csv(pagos,[
   {h:'Fecha',k:'fecha'},{h:'Cliente',k:'cliente'},{h:'Mes',k:'mes'},{h:'Concepto',k:'concepto'},
   {h:'Monto',k:'monto'},{h:'Medio',k:'medio'},{h:'Comprobante',k:'comp'},{h:'Obs',k:'obs'}]);
 
-['ovC','ovP'].forEach(id=>document.getElementById(id).addEventListener('click',e=>{if(e.target.id===id)document.getElementById(id).classList.remove('on');}));
+
+/* ---- RECIBOS ---- */
+document.getElementById('rc-logo').src=LOGO;
+function enLetras(n){
+  n=Math.round(+n||0); if(n===0) return 'son pesos cero';
+  const u=['','uno','dos','tres','cuatro','cinco','seis','siete','ocho','nueve','diez','once','doce','trece','catorce','quince','dieciséis','diecisiete','dieciocho','diecinueve','veinte'];
+  const d=['','','','treinta','cuarenta','cincuenta','sesenta','setenta','ochenta','noventa'];
+  const c=['','ciento','doscientos','trescientos','cuatrocientos','quinientos','seiscientos','setecientos','ochocientos','novecientos'];
+  function dec(x){ if(x<=20)return u[x]; if(x<30)return x===20?'veinte':'veinti'+u[x-20]; const de=Math.floor(x/10),un=x%10; return d[de]+(un?' y '+u[un]:''); }
+  function cen(x){ if(x===0)return''; if(x===100)return'cien'; const ce=Math.floor(x/100),re=x%100; return (ce?c[ce]:'')+(ce&&re?' ':'')+(re?dec(re):''); }
+  function miles(x){ if(x<1000)return cen(x); const m=Math.floor(x/1000),re=x%1000; const mp=m===1?'mil':cen(m)+' mil'; return mp+(re?' '+cen(re):''); }
+  let out;
+  if(n<1000000) out=miles(n);
+  else{ const mi=Math.floor(n/1000000),re=n%1000000; out=(mi===1?'un millón':miles(mi)+' millones')+(re?' '+miles(re):''); }
+  return 'son pesos '+out;
+}
+async function recibo(id){
+  const p=pagos.find(x=>x.id===id); if(!p||!sb)return;
+  let nro=+p.recibo_nro||0;
+  if(!nro){
+    nro=pagos.reduce((m,x)=>Math.max(m,+x.recibo_nro||0),0)+1;
+    const {error}=await sb.from('pub_pagos').update({recibo_nro:nro}).eq('id',id);
+    if(error){alert('No se pudo numerar el recibo: '+error.message);return;}
+    p.recibo_nro=nro;
+  }
+  document.getElementById('rc-nro').textContent='P-'+('0000'+nro).slice(-4);
+  document.getElementById('rc-fecha').textContent=fmtDate(p.fecha)||new Date().toLocaleDateString('es-AR');
+  document.getElementById('rc-mes').textContent=p.mes||'—';
+  document.getElementById('rc-cliente').textContent=p.cliente||'';
+  document.getElementById('rc-monto').textContent=money(p.monto);
+  document.getElementById('rc-letras').textContent=enLetras(p.monto)+'.';
+  document.getElementById('rc-concepto').textContent='Publicidad CDP · '+(p.concepto||'Pago');
+  document.getElementById('rc-medio').textContent=p.medio||'—';
+  document.getElementById('rc-comp').textContent=p.comp||'—';
+  document.getElementById('ovR').classList.add('on');
+}
+function closeR(){document.getElementById('ovR').classList.remove('on');}
+
+['ovC','ovP','ovR'].forEach(id=>document.getElementById(id).addEventListener('click',e=>{if(e.target.id===id)document.getElementById(id).classList.remove('on');}));
 boot();
 </script>
 </body>
